@@ -260,10 +260,16 @@ class Consistency(LightningModule):
         if steps <= 1:
             return images
 
-        times = list(
+        _timesteps = list(
             reversed(range(0, self.bins_max, self.bins_max // steps - 1))
         )[1:]
-        times = [t + self.bins_max // ((steps - 1) * 2) for t in times]
+        _timesteps = [
+            t + self.bins_max // ((steps - 1) * 2) for t in _timesteps
+        ]
+
+        times = self.timesteps_to_times(
+            torch.tensor(_timesteps, device=self.device), bins=150
+        )
 
         for time in times:
             noise = torch.randn(
