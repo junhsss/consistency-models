@@ -1,0 +1,10 @@
+__pycache__
+.git
+.DS_Store
+poetry.lock
+poetry.toml
+.venv
+.pre-commit-config.yaml
+.mypy_cache
+.ruff_cache
+pyproject.toml
