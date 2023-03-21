@@ -40,12 +40,6 @@ def parse_args():
         help="Batch size (per device) for the training dataloader.",
     )
     parser.add_argument(
-        "--num-samples",
-        type=int,
-        default=16,
-        help="The number of images to generate for evaluation.",
-    )
-    parser.add_argument(
         "--dataloader-num-workers",
         type=int,
         default=8,
@@ -94,14 +88,35 @@ def parse_args():
         default=0.9,
     )
     parser.add_argument(
-        "--log_every_n_steps",
+        "--log-every-n-steps",
         type=int,
-        default=30,
+        default=100,
     )
     parser.add_argument(
-        "--resume-from-checkpoint",
+        "--sample-path",
         type=str,
-        default=None,
+        default="samples/",
+    )
+    parser.add_argument(
+        "--save-samples-every-n-epoch",
+        type=int,
+        default=10,
+    )
+    parser.add_argument(
+        "--num-samples",
+        type=int,
+        default=16,
+        help="The number of images to generate for evaluation.",
+    )
+    parser.add_argument(
+        "--sample-steps",
+        type=int,
+        default=5,
+    )
+    parser.add_argument(
+        "--sample-seed",
+        type=int,
+        default=0,
     )
     args = parser.parse_args()
     return args
@@ -136,7 +151,9 @@ def main(args):
             return len(self.dataset)
 
         def __getitem__(self, index: int) -> torch.Tensor:
-            return augmentations(self.dataset[index][self.image_key].convert("RGB"))
+            return augmentations(
+                self.dataset[index][self.image_key].convert("RGB")
+            )
 
     dataloader = DataLoader(
         Dataset(
@@ -180,11 +197,16 @@ def main(args):
         bins_max=args.bins_max,
         bins_rho=args.bins_rho,
         initial_ema_decay=args.initial_ema_decay,
+        samples_path=args.sample_path,
+        save_samples_every_n_epoch=args.save_samples_every_n_epoch,
+        num_samples=args.num_samples,
+        sample_steps=args.sample_steps,
+        sample_seed=args.sample_seed,
     )
 
     trainer = Trainer(
         accelerator="auto",
-        logger=WandbLogger(project="test", log_model=True),
+        logger=WandbLogger(project="consistency", log_model=True),
         callbacks=[
             ModelCheckpoint(
                 dirpath="ckpt",
@@ -193,7 +215,7 @@ def main(args):
             )
         ],
         max_epochs=args.max_epochs,
-        precision="16-mixed",
+        precision=16,
         log_every_n_steps=args.log_every_n_steps,
         gradient_clip_algorithm="norm",
         gradient_clip_val=1.0,

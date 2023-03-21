@@ -49,6 +49,10 @@ class Consistency(LightningModule):
         initial_ema_decay: float = 0.9,
         optimizer_type: Type[optim.Optimizer] = optim.AdamW,
         samples_path: str = "samples/",
+        save_samples_every_n_epoch: int = 10,
+        num_samples: int = 16,
+        sample_steps: int = 1,
+        sample_seed: int = 0,
     ) -> None:
         super().__init__()
 
@@ -97,6 +101,10 @@ class Consistency(LightningModule):
         Path(samples_path).mkdir(exist_ok=True, parents=True)
 
         self.samples_path = samples_path
+        self.save_samples_every_n_epoch = save_samples_every_n_epoch
+        self.num_samples = num_samples
+        self.sample_steps = sample_steps
+        self.sample_seed = sample_seed
 
     def forward(
         self,
@@ -229,11 +237,25 @@ class Consistency(LightningModule):
 
     @rank_zero_only
     def on_train_start(self) -> None:
-        self.save_samples(f"{0:05}")
+        self.save_samples(
+            f"{0:05}",
+            num_samples=self.num_samples,
+            steps=self.sample_steps,
+            seed=self.sample_seed,
+        )
 
     @rank_zero_only
     def on_train_epoch_end(self) -> None:
-        self.save_samples(f"{(self.current_epoch+1):05}")
+        if (
+            (self.trainer.current_epoch + 1) % self.save_samples_every_n_epoch
+            == 0
+        ) or self.trainer.current_epoch == (self.trainer.max_epochs - 1):
+            self.save_samples(
+                f"{(self.current_epoch+1):05}",
+                num_samples=self.num_samples,
+                steps=self.sample_steps,
+                seed=self.sample_seed,
+            )
 
     @torch.no_grad()
     def sample(
@@ -280,13 +302,22 @@ class Consistency(LightningModule):
                 device=self.device,
                 generator=generator,
             )
-            images = images + math.sqrt(time**2 - self.time_min**2) * noise
-            images = self(images, torch.tensor([time], device=self.device))
+            images = (
+                images
+                + math.sqrt(time.item() ** 2 - self.time_min**2) * noise
+            )
+            images = self(images, time[None])
 
         return images
 
-    def save_samples(self, filename: str):
-        samples = self.sample()
+    def save_samples(
+        self,
+        filename: str,
+        num_samples: int = 16,
+        steps: int = 1,
+        seed: int = 0,
+    ):
+        samples = self.sample(num_samples=num_samples, steps=steps, seed=seed)
         samples.mul_(0.5).add_(0.5)
         grid = make_grid(
             samples,
@@ -308,6 +339,7 @@ class Consistency(LightningModule):
                     ),
                 },
                 commit=False,
+                step=self.trainer.global_step,
             )
 
     @staticmethod
