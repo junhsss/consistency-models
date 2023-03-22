@@ -65,6 +65,7 @@ class Consistency(LightningModule):
                 raise TypeError("'channels' is not supported for UNet2DModel")
 
             self.model = DiffusersWrapper(model)
+            self.model_ema = DiffusersWrapper(copy.deepcopy(model))
             self.image_size = model.sample_size
             self.channels = model.in_channels
 
@@ -75,10 +76,10 @@ class Consistency(LightningModule):
                 raise TypeError("'channels' should be provided.")
 
             self.model = model
+            self.model_ema = copy.deepcopy(model)
             self.image_size = image_size
             self.channels = channels
 
-        self.model_ema = copy.deepcopy(model)
         self.model_ema.requires_grad_(False)
 
         self.loss_fn = loss_fn
@@ -104,12 +105,18 @@ class Consistency(LightningModule):
         self.save_samples_every_n_epoch = save_samples_every_n_epoch
         self.num_samples = num_samples
         self.sample_steps = sample_steps
+        self.sample_ema = sample_ema
         self.sample_seed = sample_seed
 
     def forward(
         self,
         images: torch.Tensor,
         times: torch.Tensor,
+    ):
+        return self._forward(self.model, images, times)
+
+    def _forward(
+        self, model: nn.Module, images: torch.Tensor, times: torch.Tensor
     ):
         skip_coef = self.data_std**2 / (
             (times - self.time_min).pow(2) + self.data_std**2
@@ -124,7 +131,7 @@ class Consistency(LightningModule):
             images,
             skip_coef,
         ) + self.image_time_product(
-            self.model(images, times),
+            model(images, times),
             out_coef,
         )
 
@@ -151,7 +158,11 @@ class Consistency(LightningModule):
         )
 
         with torch.no_grad():
-            target = self(current_noise_image, current_times)
+            target = self._forward(
+                self.model_ema,
+                current_noise_image,
+                current_times,
+            )
 
         loss = self.loss_fn(self(next_noise_image, next_times), target)
 
@@ -263,10 +274,12 @@ class Consistency(LightningModule):
         num_samples: int = 16,
         steps: int = 1,
         seed: int = 0,
+        use_ema: bool = False,
     ) -> torch.Tensor:
         generator = torch.Generator(device=self.device).manual_seed(seed)
         time = torch.tensor([self.time_max], device=self.device)
-        images: torch.Tensor = self(
+        images: torch.Tensor = self._forward(
+            self.model_ema if use_ema else self.model,
             torch.randn(
                 num_samples,
                 self.channels,
