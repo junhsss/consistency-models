@@ -24,13 +24,6 @@ from consistency import Consistency
 consistency = Consistency(
     model=UNet2DModel(sample_size=224),
     learning_rate=1e-4,
-    data_std=0.5,
-    time_min=0.002,
-    time_max=80.0,
-    bins_min=2,
-    bins_max=150,
-    bins_rho=7,
-    initial_ema_decay=0.9,
 )
 
 samples = consistency.sample(16)
