@@ -1,6 +1,6 @@
-# Consistency Models
+# **Consistency Models** 🌃
 
-**Single-step** image generation with [Consistency Models](https://arxiv.org/abs/2303.01469) 🌃
+**Single-step** image generation with [Consistency Models](https://arxiv.org/abs/2303.01469).
 
 <br />
 
@@ -48,9 +48,9 @@ trainer = Trainer(max_epochs=8000, accelerator="auto")
 trainer.fit(consistency, some_dataloader)
 ```
 
-A complete example can be found in [this script](https://github.com/junhsss/consistency-models/blob/main/examples/train.py).
+A complete example can be found in [this script](https://github.com/junhsss/consistency-models/blob/main/examples/train.py) or [in the colab notebook](https://colab.research.google.com/github/junhsss/consistency-models/blob/main/examples/consistency_models.ipynb).
 
-[**Example wandb workspace**](https://wandb.ai/junhsss/consistency?workspace=user-junhsss) (still training... 🏗)
+[**Example wandb workspace**](https://wandb.ai/junhsss/consistency?workspace=user-junhsss) (still experimenting... 🏗)
 
 ## Reference
 
