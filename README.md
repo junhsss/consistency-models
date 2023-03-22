@@ -37,9 +37,11 @@ samples = consistency.sample(16)
 samples = consistency.sample(16, steps=5, use_ema=True)
 ```
 
-`Consistency` is self-contained with the training logic and all necessary schedules. It subclasses `LightningModule`, so it's supposed to be used with `Lightning.Trainer`.
+`Consistency` is self-contained with the training logic and all necessary schedules. It subclasses `LightningModule`, so it's supposed to be used with `Trainer`.
 
 ```python
+from pytorch_lightning import Trainer
+
 trainer = Trainer(max_epochs=8000, accelerator="auto")
 trainer.fit(consistency, some_dataloader)
 ```
