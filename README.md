@@ -6,6 +6,8 @@
 
 ![image](./assets/consistency_models.png)
 
+**Consistency Models** are a new family of generative models that achieve high sample quality without adversarial training. They support _fast one-step generation_ by design, while still allowing for few-step sampling to trade compute for sample quality.
+
 ## Installation
 
 ```sh
@@ -49,3 +51,18 @@ trainer.fit(consistency, some_dataloader)
 A complete example can be found in [this script](https://github.com/junhsss/consistency-models/blob/main/examples/train.py).
 
 [**Example wandb workspace**](https://wandb.ai/junhsss/consistency?workspace=user-junhsss) (still training... 🏗)
+
+## Reference
+
+```bibtex
+@misc{https://doi.org/10.48550/arxiv.2303.01469,
+  doi       = {10.48550/ARXIV.2303.01469},
+  url       = {https://arxiv.org/abs/2303.01469},
+  author    = {Song, Yang and Dhariwal, Prafulla and Chen, Mark and Sutskever, Ilya},
+  keywords  = {Machine Learning (cs.LG), Computer Vision and Pattern Recognition (cs.CV), Machine Learning (stat.ML), FOS: Computer and information sciences, FOS: Computer and information sciences},
+  title     = {Consistency Models},
+  publisher = {arXiv},
+  year      = {2023},
+  copyright = {arXiv.org perpetual, non-exclusive license}
+}
+```
