@@ -113,6 +113,7 @@ def parse_args():
         type=int,
         default=5,
     )
+    parser.add_argument("--sample-ema", action="store_true")
     parser.add_argument(
         "--sample-seed",
         type=int,
@@ -201,6 +202,7 @@ def main(args):
         save_samples_every_n_epoch=args.save_samples_every_n_epoch,
         num_samples=args.num_samples,
         sample_steps=args.sample_steps,
+        sample_ema=args.sample_ema,
         sample_seed=args.sample_seed,
     )
 

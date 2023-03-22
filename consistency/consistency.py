@@ -52,6 +52,7 @@ class Consistency(LightningModule):
         save_samples_every_n_epoch: int = 10,
         num_samples: int = 16,
         sample_steps: int = 1,
+        sample_ema: bool = False,
         sample_seed: int = 0,
     ) -> None:
         super().__init__()
@@ -253,6 +254,7 @@ class Consistency(LightningModule):
             num_samples=self.num_samples,
             steps=self.sample_steps,
             seed=self.sample_seed,
+            use_ema=self.sample_ema,
         )
 
     @rank_zero_only
@@ -266,6 +268,7 @@ class Consistency(LightningModule):
                 num_samples=self.num_samples,
                 steps=self.sample_steps,
                 seed=self.sample_seed,
+                use_ema=self.sample_ema,
             )
 
     @torch.no_grad()
@@ -319,18 +322,29 @@ class Consistency(LightningModule):
                 images
                 + math.sqrt(time.item() ** 2 - self.time_min**2) * noise
             )
-            images = self(images, time[None])
+            images = self._forward(
+                self.model_ema if use_ema else self.model,
+                images,
+                time[None],
+            )
 
         return images
 
+    @torch.no_grad()
     def save_samples(
         self,
         filename: str,
         num_samples: int = 16,
         steps: int = 1,
+        use_ema: bool = False,
         seed: int = 0,
     ):
-        samples = self.sample(num_samples=num_samples, steps=steps, seed=seed)
+        samples = self.sample(
+            num_samples=num_samples,
+            steps=steps,
+            use_ema=use_ema,
+            seed=seed,
+        )
         samples.mul_(0.5).add_(0.5)
         grid = make_grid(
             samples,

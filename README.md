@@ -6,7 +6,7 @@ Implementation of Consistency Models [(Song et al., 2023)](https://arxiv.org/abs
 
 ![image](./assets/consistency_models.png)
 
-## Install
+## Installation
 
 ```sh
 $ pip install consistency
@@ -32,7 +32,9 @@ consistency = Consistency(
 )
 
 samples = consistency.sample(16)
-samples = consistency.sample(16, steps=5)  # multi-step generation
+
+# multi-step sampling, sample from the ema model
+samples = consistency.sample(16, steps=5, use_ema=True)
 ```
 
 `Consistency` is self-contained with the training logic and all necessary schedules. It subclasses `LightningModule`, so it's supposed to be used with `Lightning.Trainer`.
