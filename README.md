@@ -1,6 +1,6 @@
 # Consistency Models
 
-Implementation of Consistency Models [(Song et al., 2023)](https://arxiv.org/abs/2303.01469) in PyTorch.
+**Single-step** image generation with [Consistency Models](https://arxiv.org/abs/2303.01469) 🌃
 
 <br />
 
@@ -45,7 +45,3 @@ trainer.fit(consistency, some_dataloader)
 ```
 
 A complete example can be found in [this script](https://github.com/junhsss/consistency-models/blob/main/examples/train.py).
-
-## Result
-
-[Example wandb workspace](https://wandb.ai/junhsss/consistency/runs/pn566sjt?workspace=user-), with a batch size of **512**, **~20K** steps on `cifar10`.
