@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from consistency import Consistency
+from consistency.loss import LPIPSLoss
 
 
 def parse_args():
@@ -119,6 +120,8 @@ def parse_args():
         type=int,
         default=0,
     )
+    parser.add_argument("--ckpt-path", type=str)
+    parser.add_argument("--wandb-id", type=str)
     args = parser.parse_args()
     return args
 
@@ -164,64 +167,137 @@ def main(args):
         num_workers=args.dataloader_num_workers,
     )
 
-    consistency = Consistency(
-        model=UNet2DModel(
-            sample_size=args.resolution,
-            in_channels=3,
-            out_channels=3,
-            layers_per_block=2,
-            block_out_channels=(128, 128, 256, 256, 512, 512),
-            down_block_types=(
-                "DownBlock2D",
-                "DownBlock2D",
-                "DownBlock2D",
-                "DownBlock2D",
-                "AttnDownBlock2D",
-                "DownBlock2D",
+    if args.ckpt_path:
+        consistency = Consistency.load_from_checkpoint(
+            checkpoint_path=args.ckpt_path,
+            model=UNet2DModel(
+                sample_size=args.resolution,
+                in_channels=3,
+                out_channels=3,
+                layers_per_block=2,
+                block_out_channels=(128, 128, 256, 256, 512, 512),
+                down_block_types=(
+                    "DownBlock2D",
+                    "DownBlock2D",
+                    "DownBlock2D",
+                    "DownBlock2D",
+                    "AttnDownBlock2D",
+                    "DownBlock2D",
+                ),
+                up_block_types=(
+                    "UpBlock2D",
+                    "AttnUpBlock2D",
+                    "UpBlock2D",
+                    "UpBlock2D",
+                    "UpBlock2D",
+                    "UpBlock2D",
+                ),
             ),
-            up_block_types=(
-                "UpBlock2D",
-                "AttnUpBlock2D",
-                "UpBlock2D",
-                "UpBlock2D",
-                "UpBlock2D",
-                "UpBlock2D",
-            ),
-        ),
-        learning_rate=args.learning_rate,
-        data_std=args.data_std,
-        time_min=args.time_min,
-        time_max=args.time_max,
-        bins_min=args.bins_min,
-        bins_max=args.bins_max,
-        bins_rho=args.bins_rho,
-        initial_ema_decay=args.initial_ema_decay,
-        samples_path=args.sample_path,
-        save_samples_every_n_epoch=args.save_samples_every_n_epoch,
-        num_samples=args.num_samples,
-        sample_steps=args.sample_steps,
-        sample_ema=args.sample_ema,
-        sample_seed=args.sample_seed,
-    )
+            loss_fn=LPIPSLoss(),
+            learning_rate=args.learning_rate,
+            data_std=args.data_std,
+            time_min=args.time_min,
+            time_max=args.time_max,
+            bins_min=args.bins_min,
+            bins_max=args.bins_max,
+            bins_rho=args.bins_rho,
+            initial_ema_decay=args.initial_ema_decay,
+            samples_path=args.sample_path,
+            save_samples_every_n_epoch=args.save_samples_every_n_epoch,
+            num_samples=args.num_samples,
+            sample_steps=args.sample_steps,
+            sample_ema=args.sample_ema,
+            sample_seed=args.sample_seed,
+        )
 
-    trainer = Trainer(
-        accelerator="auto",
-        logger=WandbLogger(project="consistency", log_model=True),
-        callbacks=[
-            ModelCheckpoint(
-                dirpath="ckpt",
-                save_top_k=3,
-                monitor="loss",
+        trainer = Trainer(
+            accelerator="auto",
+            logger=WandbLogger(
+                project="consistency",
+                log_model=True,
+                id=args.wandb_id,
+                resume="must",
             )
-        ],
-        max_epochs=args.max_epochs,
-        precision=16,
-        log_every_n_steps=args.log_every_n_steps,
-        gradient_clip_algorithm="norm",
-        gradient_clip_val=1.0,
-    )
+            if args.wandb_id
+            else WandbLogger(
+                project="consistency",
+                log_model=True,
+            ),
+            callbacks=[
+                ModelCheckpoint(
+                    dirpath="ckpt",
+                    save_top_k=3,
+                    monitor="loss",
+                )
+            ],
+            max_epochs=args.max_epochs,
+            precision=16,
+            log_every_n_steps=args.log_every_n_steps,
+            gradient_clip_algorithm="norm",
+            gradient_clip_val=1.0,
+        )
+        trainer.fit(consistency, dataloader, ckpt_path=args.ckpt_path)
 
-    trainer.fit(consistency, dataloader)
+    else:
+        consistency = Consistency(
+            model=UNet2DModel(
+                sample_size=args.resolution,
+                in_channels=3,
+                out_channels=3,
+                layers_per_block=2,
+                block_out_channels=(128, 128, 256, 256, 512, 512),
+                down_block_types=(
+                    "DownBlock2D",
+                    "DownBlock2D",
+                    "DownBlock2D",
+                    "DownBlock2D",
+                    "AttnDownBlock2D",
+                    "DownBlock2D",
+                ),
+                up_block_types=(
+                    "UpBlock2D",
+                    "AttnUpBlock2D",
+                    "UpBlock2D",
+                    "UpBlock2D",
+                    "UpBlock2D",
+                    "UpBlock2D",
+                ),
+            ),
+            loss_fn=LPIPSLoss(),
+            learning_rate=args.learning_rate,
+            data_std=args.data_std,
+            time_min=args.time_min,
+            time_max=args.time_max,
+            bins_min=args.bins_min,
+            bins_max=args.bins_max,
+            bins_rho=args.bins_rho,
+            initial_ema_decay=args.initial_ema_decay,
+            samples_path=args.sample_path,
+            save_samples_every_n_epoch=args.save_samples_every_n_epoch,
+            num_samples=args.num_samples,
+            sample_steps=args.sample_steps,
+            sample_ema=args.sample_ema,
+            sample_seed=args.sample_seed,
+        )
+
+        trainer = Trainer(
+            accelerator="auto",
+            logger=WandbLogger(project="consistency", log_model=True),
+            callbacks=[
+                ModelCheckpoint(
+                    dirpath="ckpt",
+                    save_top_k=3,
+                    monitor="loss",
+                )
+            ],
+            max_epochs=args.max_epochs,
+            precision=16,
+            log_every_n_steps=args.log_every_n_steps,
+            gradient_clip_algorithm="norm",
+            gradient_clip_val=1.0,
+        )
+
+        trainer.fit(consistency, dataloader)
 
 
 if __name__ == "__main__":

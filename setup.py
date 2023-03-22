@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-__version__ = "0.1.2"
+__version__ = "0.2.0"
 
 setup(
     name="consistency",
@@ -19,6 +19,8 @@ setup(
         "torchvision",
         "pytorch-lightning",
         "diffusers",
+        "torchmetrics",
+        "lpips",
     ],
     classifiers=[
         "Development Status :: 4 - Beta",
