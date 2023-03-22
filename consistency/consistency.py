@@ -369,6 +369,10 @@ class Consistency(LightningModule):
                 step=self.trainer.global_step,
             )
 
+        del samples
+        del grid
+        torch.cuda.empty_cache()
+
     @staticmethod
     def image_time_product(images: torch.Tensor, times: torch.Tensor):
         return torch.einsum("b c h w, b -> b c h w", images, times)
