@@ -48,4 +48,4 @@ trainer.fit(consistency, some_dataloader)
 
 A complete example can be found in [this script](https://github.com/junhsss/consistency-models/blob/main/examples/train.py).
 
-[**Example wandb workspace**](https://wandb.ai/junhsss/consistency/runs/gq55ghkh?workspace=user-junhsss) (still training... 🏗)
+[**Example wandb workspace**](https://wandb.ai/junhsss/consistency?workspace=user-junhsss) (still training... 🏗)
