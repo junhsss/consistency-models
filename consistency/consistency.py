@@ -12,6 +12,7 @@ from pytorch_lightning.loggers.wandb import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
 from torch import nn, optim
 from torchmetrics import MeanMetric
+from torchvision.transforms.functional import to_pil_image
 from torchvision.utils import make_grid, save_image
 
 with suppress(ImportError):
@@ -59,9 +60,7 @@ class Consistency(LightningModule):
 
         if isinstance(model, UNet2DModel):
             if image_size:
-                raise TypeError(
-                    "'image_size' is not supported for UNet2DModel"
-                )
+                raise TypeError("'image_size' is not supported for UNet2DModel")
             if channels:
                 raise TypeError("'channels' is not supported for UNet2DModel")
 
@@ -116,17 +115,11 @@ class Consistency(LightningModule):
     ):
         return self._forward(self.model, images, times)
 
-    def _forward(
-        self, model: nn.Module, images: torch.Tensor, times: torch.Tensor
-    ):
+    def _forward(self, model: nn.Module, images: torch.Tensor, times: torch.Tensor):
         skip_coef = self.data_std**2 / (
             (times - self.time_min).pow(2) + self.data_std**2
         )
-        out_coef = (
-            self.data_std
-            * times
-            / (times.pow(2) + self.data_std**2).pow(0.5)
-        )
+        out_coef = self.data_std * times / (times.pow(2) + self.data_std**2).pow(0.5)
 
         return self.image_time_product(
             images,
@@ -213,9 +206,7 @@ class Consistency(LightningModule):
 
     @property
     def ema_decay(self):
-        return math.exp(
-            self.bins_min * math.log(self.initial_ema_decay) / self.bins
-        )
+        return math.exp(self.bins_min * math.log(self.initial_ema_decay) / self.bins)
 
     @property
     def bins(self) -> int:
@@ -260,8 +251,7 @@ class Consistency(LightningModule):
     @rank_zero_only
     def on_train_epoch_end(self) -> None:
         if (
-            (self.trainer.current_epoch + 1) % self.save_samples_every_n_epoch
-            == 0
+            (self.trainer.current_epoch + 1) % self.save_samples_every_n_epoch == 0
         ) or self.trainer.current_epoch == (self.trainer.max_epochs - 1):
             self.save_samples(
                 f"{(self.current_epoch+1):05}",
@@ -301,9 +291,7 @@ class Consistency(LightningModule):
         _timesteps = list(
             reversed(range(0, self.bins_max, self.bins_max // steps - 1))
         )[1:]
-        _timesteps = [
-            t + self.bins_max // ((steps - 1) * 2) for t in _timesteps
-        ]
+        _timesteps = [t + self.bins_max // ((steps - 1) * 2) for t in _timesteps]
 
         times = self.timesteps_to_times(
             torch.tensor(_timesteps, device=self.device), bins=150
@@ -318,10 +306,7 @@ class Consistency(LightningModule):
                 device=self.device,
                 generator=generator,
             )
-            images = (
-                images
-                + math.sqrt(time.item() ** 2 - self.time_min**2) * noise
-            )
+            images = images + math.sqrt(time.item() ** 2 - self.time_min**2) * noise
             images = self._forward(
                 self.model_ema if use_ema else self.model,
                 images,
@@ -361,9 +346,7 @@ class Consistency(LightningModule):
         if isinstance(self.trainer.logger, WandbLogger):
             wandb.log(
                 {
-                    "samples": wandb.Image(
-                        grid.permute(1, 2, 0).cpu().numpy()
-                    ),
+                    "samples": wandb.Image(to_pil_image(grid)),
                 },
                 commit=False,
                 step=self.trainer.global_step,

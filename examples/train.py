@@ -152,9 +152,7 @@ def main(args):
             return len(self.dataset)
 
         def __getitem__(self, index: int) -> torch.Tensor:
-            return augmentations(
-                self.dataset[index][self.image_key].convert("RGB")
-            )
+            return augmentations(self.dataset[index][self.image_key].convert("RGB"))
 
     dataloader = DataLoader(
         Dataset(
