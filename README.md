@@ -4,7 +4,9 @@
 
 <br />
 
-![image](./assets/consistency_models.png)
+<img src="./assets/training.gif" />
+
+<br />
 
 **Consistency Models** are a new family of generative models that achieve high sample quality without adversarial training. They support _fast one-step generation_ by design, while still allowing for few-step sampling to trade compute for sample quality.
 
@@ -41,9 +43,9 @@ trainer = Trainer(max_epochs=8000, accelerator="auto")
 trainer.fit(consistency, some_dataloader)
 ```
 
-A complete example can be found in [this script](https://github.com/junhsss/consistency-models/blob/main/examples/train.py) or [in the colab notebook](https://colab.research.google.com/github/junhsss/consistency-models/blob/main/examples/consistency_models.ipynb).
+A complete example can be found in [this **script**](https://github.com/junhsss/consistency-models/blob/main/examples/train.py) or in [this **colab notebook**](https://colab.research.google.com/github/junhsss/consistency-models/blob/main/examples/consistency_models.ipynb).
 
-[**Example wandb workspace**](https://wandb.ai/junhsss/consistency?workspace=user-junhsss) (still experimenting... 🏗)
+Checkout [this **Wandb workspace**](https://wandb.ai/junhsss/consistency?workspace=user-junhsss) for some experiment results. (still training... 🏗)
 
 ## Reference
 
