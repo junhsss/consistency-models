@@ -115,19 +115,30 @@ class Consistency(LightningModule):
     ):
         return self._forward(self.model, images, times)
 
-    def _forward(self, model: nn.Module, images: torch.Tensor, times: torch.Tensor):
+    def _forward(
+        self,
+        model: nn.Module,
+        images: torch.Tensor,
+        times: torch.Tensor,
+        clip: bool = True,
+    ):
         skip_coef = self.data_std**2 / (
             (times - self.time_min).pow(2) + self.data_std**2
         )
         out_coef = self.data_std * times / (times.pow(2) + self.data_std**2).pow(0.5)
 
-        return self.image_time_product(
+        output = self.image_time_product(
             images,
             skip_coef,
         ) + self.image_time_product(
             model(images, times),
             out_coef,
         )
+
+        if clip:
+            return output.clamp(-1.0, 1.0)
+
+        return output
 
     def training_step(self, images: torch.Tensor, *args, **kwargs):
         noise = torch.randn(images.shape, device=images.device)

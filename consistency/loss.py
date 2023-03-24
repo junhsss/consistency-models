@@ -1,4 +1,5 @@
-from typing import Sequence, Tuple, Union
+from collections.abc import Sequence
+from typing import Tuple, Union
 
 import torch.nn.functional as F
 from torch import nn
@@ -55,8 +56,8 @@ class PerceptualLoss(nn.Module):
 
         return (
             lpips_loss
-            + self.overflow_weight * F(input, self.clamp(input))
-            + self.l1_weight * F(input, target)
+            + self.overflow_weight * F.l1_loss(input, self.clamp(input))
+            + self.l1_weight * F.l1_loss(input, target)
         )
 
 
