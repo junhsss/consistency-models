@@ -37,6 +37,7 @@ class Consistency(LightningModule):
     def __init__(
         self,
         model: nn.Module,
+        *,
         loss_fn: nn.Module = nn.MSELoss(),
         learning_rate: float = 1e-4,
         image_size: Optional[int] = None,
@@ -55,6 +56,7 @@ class Consistency(LightningModule):
         sample_steps: int = 1,
         sample_ema: bool = False,
         sample_seed: int = 0,
+        **kwargs,
     ) -> None:
         super().__init__()
 
@@ -141,16 +143,18 @@ class Consistency(LightningModule):
         return output
 
     def training_step(self, images: torch.Tensor, *args, **kwargs):
+        _bins = self.bins
+
         noise = torch.randn(images.shape, device=images.device)
         timesteps = torch.randint(
             0,
-            self.bins - 1,
+            _bins - 1,
             (images.shape[0],),
             device=images.device,
         ).long()
 
-        current_times = self.timesteps_to_times(timesteps, self.bins)
-        next_times = self.timesteps_to_times(timesteps + 1, self.bins)
+        current_times = self.timesteps_to_times(timesteps, _bins)
+        next_times = self.timesteps_to_times(timesteps + 1, _bins)
 
         current_noise_image = images + self.image_time_product(
             noise,
@@ -180,7 +184,7 @@ class Consistency(LightningModule):
             logger=True,
         )
 
-        self._bins_tracker(self.bins)
+        self._bins_tracker(_bins)
         self.log(
             "bins",
             self._bins_tracker,

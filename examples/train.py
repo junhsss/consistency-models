@@ -1,4 +1,5 @@
 import argparse
+import math
 
 import torch
 from datasets import load_dataset
@@ -10,7 +11,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from consistency import Consistency
-from consistency.loss import LPIPSLoss
+from consistency.loss import PerceptualLoss
 
 
 def parse_args():
@@ -120,8 +121,11 @@ def parse_args():
         type=int,
         default=0,
     )
-    parser.add_argument("--ckpt-path", type=str)
-    parser.add_argument("--wandb-id", type=str)
+    parser.add_argument("--wandb-project", type=str, default="consistency")
+    parser.add_argument("--ckpt-path", type=str, default="ckpt")
+
+    parser.add_argument("--resume-ckpt-path", type=str)
+    parser.add_argument("--resume-wandb-id", type=str)
     args = parser.parse_args()
     return args
 
@@ -165,35 +169,53 @@ def main(args):
         batch_size=args.train_batch_size,
         shuffle=True,
         num_workers=args.dataloader_num_workers,
+        pin_memory=True,
+        persistent_workers=True,
     )
 
-    if args.ckpt_path:
+    # NCSN++ Architecture
+    # See https://huggingface.co/google/ncsnpp-ffhq-1024/blob/main/config.json
+    unet = UNet2DModel(
+        sample_size=args.resolution,
+        in_channels=3,
+        out_channels=3,
+        layers_per_block=1,
+        attention_head_dim=8,
+        block_out_channels=(16, 32, 64, 128, 256, 512, 512, 512),
+        down_block_types=(
+            "SkipDownBlock2D",
+            "SkipDownBlock2D",
+            "SkipDownBlock2D",
+            "SkipDownBlock2D",
+            "SkipDownBlock2D",
+            "SkipDownBlock2D",
+            "AttnSkipDownBlock2D",
+            "SkipDownBlock2D",
+        ),
+        downsample_padding=1,
+        act_fn="silu",
+        center_input_sample=True,
+        mid_block_scale_factor=math.sqrt(2),
+        time_embedding_type="fourier",
+        up_block_types=(
+            "SkipUpBlock2D",
+            "AttnSkipUpBlock2D",
+            "SkipUpBlock2D",
+            "SkipUpBlock2D",
+            "SkipUpBlock2D",
+            "SkipUpBlock2D",
+            "SkipUpBlock2D",
+            "SkipUpBlock2D",
+        ),
+    )
+    # Use both VGG and SqueezeNet as loss
+    loss_fn = PerceptualLoss(net_type=("vgg", "squeeze"))
+
+    if args.resume_ckpt_path:
         consistency = Consistency.load_from_checkpoint(
-            checkpoint_path=args.ckpt_path,
-            model=UNet2DModel(
-                sample_size=args.resolution,
-                in_channels=3,
-                out_channels=3,
-                layers_per_block=2,
-                block_out_channels=(128, 128, 256, 256, 512, 512),
-                down_block_types=(
-                    "DownBlock2D",
-                    "DownBlock2D",
-                    "DownBlock2D",
-                    "DownBlock2D",
-                    "AttnDownBlock2D",
-                    "DownBlock2D",
-                ),
-                up_block_types=(
-                    "UpBlock2D",
-                    "AttnUpBlock2D",
-                    "UpBlock2D",
-                    "UpBlock2D",
-                    "UpBlock2D",
-                    "UpBlock2D",
-                ),
-            ),
-            loss_fn=LPIPSLoss(),
+            checkpoint_path=args.resume_ckpt_path,
+            model=unet,
+            loss_fn=loss_fn,
             learning_rate=args.learning_rate,
             data_std=args.data_std,
             time_min=args.time_min,
@@ -213,14 +235,14 @@ def main(args):
         trainer = Trainer(
             accelerator="auto",
             logger=WandbLogger(
-                project="consistency",
+                project=args.wandb_project,
                 log_model=True,
-                id=args.wandb_id,
+                id=args.resume_wandb_id,
                 resume="must",
             )
             if args.wandb_id
             else WandbLogger(
-                project="consistency",
+                project=args.wandb_project,
                 log_model=True,
             ),
             callbacks=[
@@ -240,30 +262,8 @@ def main(args):
 
     else:
         consistency = Consistency(
-            model=UNet2DModel(
-                sample_size=args.resolution,
-                in_channels=3,
-                out_channels=3,
-                layers_per_block=2,
-                block_out_channels=(128, 128, 256, 256, 512, 512),
-                down_block_types=(
-                    "DownBlock2D",
-                    "DownBlock2D",
-                    "DownBlock2D",
-                    "DownBlock2D",
-                    "AttnDownBlock2D",
-                    "DownBlock2D",
-                ),
-                up_block_types=(
-                    "UpBlock2D",
-                    "AttnUpBlock2D",
-                    "UpBlock2D",
-                    "UpBlock2D",
-                    "UpBlock2D",
-                    "UpBlock2D",
-                ),
-            ),
-            loss_fn=LPIPSLoss(),
+            model=unet,
+            loss_fn=loss_fn,
             learning_rate=args.learning_rate,
             data_std=args.data_std,
             time_min=args.time_min,
@@ -282,7 +282,7 @@ def main(args):
 
         trainer = Trainer(
             accelerator="auto",
-            logger=WandbLogger(project="consistency", log_model=True),
+            logger=WandbLogger(project=args.wandb_project, log_model=True),
             callbacks=[
                 ModelCheckpoint(
                     dirpath="ckpt",

@@ -9,9 +9,10 @@ from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 class PerceptualLoss(nn.Module):
     def __init__(
         self,
+        *,
         net_type: Union[str, Tuple[str, ...]] = "vgg",
-        overflow_weight: float = 5.0,
         l1_weight: float = 1.0,
+        **kwargs,
     ):
         super().__init__()
 
@@ -38,27 +39,14 @@ class PerceptualLoss(nn.Module):
 
         self.lpips_losses.requires_grad_(False)
 
-        self.overflow_weight = overflow_weight
         self.l1_weight = l1_weight
 
-    @staticmethod
-    def clamp(x):
-        return x.clamp(-1, 1)
-
     def forward(self, input, target):
-        clampped_input = self.clamp(input)
-        clampped_target = self.clamp(target)
-
         lpips_loss = sum(
-            _lpips_loss(clampped_input, clampped_target)
-            for _lpips_loss in self.lpips_losses
+            _lpips_loss(input, target) for _lpips_loss in self.lpips_losses
         )
 
-        return (
-            lpips_loss
-            + self.overflow_weight * F.l1_loss(input, self.clamp(input))
-            + self.l1_weight * F.l1_loss(input, target)
-        )
+        return lpips_loss + self.l1_weight * F.l1_loss(input, target)
 
 
 LPIPSLoss = PerceptualLoss
