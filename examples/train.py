@@ -123,6 +123,7 @@ def parse_args():
     )
     parser.add_argument("--wandb-project", type=str, default="consistency")
     parser.add_argument("--ckpt-path", type=str, default="ckpt")
+    parser.add_argument("--unet-config-path", type=str)
 
     parser.add_argument("--resume-ckpt-path", type=str)
     parser.add_argument("--resume-wandb-id", type=str)
@@ -173,41 +174,43 @@ def main(args):
         persistent_workers=True,
     )
 
-    # NCSN++ Architecture
-    # See https://huggingface.co/google/ncsnpp-ffhq-1024/blob/main/config.json
-    unet = UNet2DModel(
-        sample_size=args.resolution,
-        in_channels=3,
-        out_channels=3,
-        layers_per_block=1,
-        attention_head_dim=8,
-        block_out_channels=(16, 32, 64, 128, 256, 512, 512, 512),
-        down_block_types=(
-            "SkipDownBlock2D",
-            "SkipDownBlock2D",
-            "SkipDownBlock2D",
-            "SkipDownBlock2D",
-            "SkipDownBlock2D",
-            "SkipDownBlock2D",
-            "AttnSkipDownBlock2D",
-            "SkipDownBlock2D",
-        ),
-        downsample_padding=1,
-        act_fn="silu",
-        center_input_sample=True,
-        mid_block_scale_factor=math.sqrt(2),
-        time_embedding_type="fourier",
-        up_block_types=(
-            "SkipUpBlock2D",
-            "AttnSkipUpBlock2D",
-            "SkipUpBlock2D",
-            "SkipUpBlock2D",
-            "SkipUpBlock2D",
-            "SkipUpBlock2D",
-            "SkipUpBlock2D",
-            "SkipUpBlock2D",
-        ),
-    )
+    if args.unet_config_path:
+        import json
+
+        with open(args.unet_config_path) as f:
+            config = json.load(f)
+
+        UNet2DModel.from_config(config)
+    else:
+        # NCSN++ Architecture
+        # See https://huggingface.co/google/ncsnpp-ffhq-1024/blob/main/config.json
+        unet = UNet2DModel(
+            sample_size=args.resolution,
+            in_channels=3,
+            out_channels=3,
+            layers_per_block=4,
+            attention_head_dim=8,
+            block_out_channels=(128, 256, 256, 256),
+            down_block_types=(
+                "SkipDownBlock2D",
+                "SkipDownBlock2D",
+                "AttnSkipDownBlock2D",
+                "SkipDownBlock2D",
+            ),
+            downsample_padding=1,
+            freq_shift=0,
+            flip_sin_to_cos=True,
+            act_fn="silu",
+            center_input_sample=True,
+            mid_block_scale_factor=math.sqrt(2),
+            time_embedding_type="fourier",
+            up_block_types=(
+                "SkipUpBlock2D",
+                "AttnSkipUpBlock2D",
+                "SkipUpBlock2D",
+                "SkipUpBlock2D",
+            ),
+        )
     # Use both VGG and SqueezeNet as loss
     loss_fn = PerceptualLoss(net_type=("vgg", "squeeze"))
 
