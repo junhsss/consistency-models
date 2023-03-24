@@ -193,8 +193,8 @@ def main(args):
             block_out_channels=(128, 256, 256, 256),
             down_block_types=(
                 "SkipDownBlock2D",
-                "SkipDownBlock2D",
                 "AttnSkipDownBlock2D",
+                "SkipDownBlock2D",
                 "SkipDownBlock2D",
             ),
             downsample_padding=1,
@@ -206,8 +206,8 @@ def main(args):
             time_embedding_type="fourier",
             up_block_types=(
                 "SkipUpBlock2D",
-                "AttnSkipUpBlock2D",
                 "SkipUpBlock2D",
+                "AttnSkipUpBlock2D",
                 "SkipUpBlock2D",
             ),
         )
@@ -256,7 +256,7 @@ def main(args):
                 )
             ],
             max_epochs=args.max_epochs,
-            precision=16,
+            precision=32,
             log_every_n_steps=args.log_every_n_steps,
             gradient_clip_algorithm="norm",
             gradient_clip_val=1.0,
