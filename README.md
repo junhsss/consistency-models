@@ -18,13 +18,17 @@ $ pip install consistency
 
 ## Usage
 
+Just wrap your favorite _U-Net_ with `Consistency`. 😊
+
 ```python
 import torch
 from diffusers import UNet2DModel
 from consistency import Consistency
+from consistency.loss import PerceptualLoss
 
 consistency = Consistency(
     model=UNet2DModel(sample_size=224),
+    loss_fn=PerceptualLoss(net_type=("vgg", "squeeze"))
     learning_rate=1e-4,
 )
 
@@ -34,7 +38,9 @@ samples = consistency.sample(16)
 samples = consistency.sample(16, steps=5, use_ema=True)
 ```
 
-`Consistency` is self-contained with the training logic and all necessary schedules. It subclasses `LightningModule`, so it's supposed to be used with `Trainer`.
+`Consistency` is self-contained with the training logic and all necessary schedules.
+
+You can train it with **PyTorch Lightning**'s `Trainer` 🚀
 
 ```python
 from pytorch_lightning import Trainer
