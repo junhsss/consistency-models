@@ -42,8 +42,12 @@ class PerceptualLoss(nn.Module):
         self.l1_weight = l1_weight
 
     def forward(self, input, target):
+        upscaled_input = F.interpolate(input, (224, 224), mode="bilinear")
+        upscaled_target = F.interpolate(target, (224, 224), mode="bilinear")
+
         lpips_loss = sum(
-            _lpips_loss(input, target) for _lpips_loss in self.lpips_losses
+            _lpips_loss(upscaled_input, upscaled_target)
+            for _lpips_loss in self.lpips_losses
         )
 
         return lpips_loss + self.l1_weight * F.l1_loss(input, target)
