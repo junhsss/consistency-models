@@ -49,7 +49,7 @@ class Consistency(LightningModule):
         bins_max: int = 150,
         bins_rho: float = 7,
         initial_ema_decay: float = 0.9,
-        optimizer_type: Type[optim.Optimizer] = optim.AdamW,
+        optimizer_type: Type[optim.Optimizer] = optim.RAdam,
         samples_path: str = "samples/",
         save_samples_every_n_epoch: int = 10,
         num_samples: int = 16,
@@ -225,17 +225,13 @@ class Consistency(LightningModule):
 
     @property
     def bins(self) -> int:
-        return (
-            math.ceil(
-                math.sqrt(
-                    self.trainer.global_step
-                    / self.trainer.estimated_stepping_batches
-                    * (self.bins_max**2 - self.bins_min**2)
-                    + self.bins_min**2
-                )
-                - 1
+        return math.ceil(
+            math.sqrt(
+                self.trainer.global_step
+                / self.trainer.estimated_stepping_batches
+                * (self.bins_max**2 - self.bins_min**2)
+                + self.bins_min**2
             )
-            + 1
         )
 
     def timesteps_to_times(self, timesteps: torch.LongTensor, bins: int):
@@ -266,8 +262,10 @@ class Consistency(LightningModule):
     @rank_zero_only
     def on_train_epoch_end(self) -> None:
         if (
-            (self.trainer.current_epoch + 1) % self.save_samples_every_n_epoch == 0
-        ) or self.trainer.current_epoch == (self.trainer.max_epochs - 1):
+            (self.trainer.current_epoch < 30)
+            or ((self.trainer.current_epoch + 1) % self.save_samples_every_n_epoch == 0)
+            or self.trainer.current_epoch == (self.trainer.max_epochs - 1)
+        ):
             self.save_samples(
                 f"{(self.current_epoch+1):05}",
                 num_samples=self.num_samples,
