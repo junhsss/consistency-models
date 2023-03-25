@@ -182,7 +182,7 @@ def main(args):
 
         UNet2DModel.from_config(config)
     else:
-        # NCSN++ Architecture
+        # Simplified NCSN++ Architecture
         # See https://huggingface.co/google/ncsnpp-ffhq-1024/blob/main/config.json
         unet = UNet2DModel(
             sample_size=args.resolution,
@@ -198,12 +198,9 @@ def main(args):
                 "SkipDownBlock2D",
             ),
             downsample_padding=1,
-            freq_shift=0,
-            flip_sin_to_cos=True,
             act_fn="silu",
             center_input_sample=True,
             mid_block_scale_factor=math.sqrt(2),
-            time_embedding_type="fourier",
             up_block_types=(
                 "SkipUpBlock2D",
                 "SkipUpBlock2D",
