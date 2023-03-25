@@ -2,11 +2,12 @@ import copy
 import math
 from contextlib import suppress
 from pathlib import Path
-from typing import Optional, Type
+from typing import List, Optional, Type, Union
 
 import torch
 from diffusers import UNet2DModel
 from diffusers.models.unet_2d import UNet2DOutput
+from diffusers.utils import randn_tensor
 from pytorch_lightning import LightningModule
 from pytorch_lightning.loggers.wandb import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
@@ -279,22 +280,16 @@ class Consistency(LightningModule):
         self,
         num_samples: int = 16,
         steps: int = 1,
-        seed: int = 0,
+        generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
         use_ema: bool = False,
     ) -> torch.Tensor:
-        generator = torch.Generator(device=self.device).manual_seed(seed)
+        shape = (num_samples, self.channels, self.image_size, self.image_size)
+
         time = torch.tensor([self.time_max], device=self.device)
+
         images: torch.Tensor = self._forward(
             self.model_ema if use_ema else self.model,
-            torch.randn(
-                num_samples,
-                self.channels,
-                self.image_size,
-                self.image_size,
-                device=self.device,
-                generator=generator,
-            )
-            * time,
+            randn_tensor(shape, generator=generator, device=self.device) * time,
             time,
         )
 
@@ -311,14 +306,7 @@ class Consistency(LightningModule):
         )
 
         for time in times:
-            noise = torch.randn(
-                num_samples,
-                self.channels,
-                self.image_size,
-                self.image_size,
-                device=self.device,
-                generator=generator,
-            )
+            noise = randn_tensor(shape, generator=generator, device=self.device)
             images = images + math.sqrt(time.item() ** 2 - self.time_min**2) * noise
             images = self._forward(
                 self.model_ema if use_ema else self.model,

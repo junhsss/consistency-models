@@ -2,18 +2,28 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 from diffusers import DiffusionPipeline, ImagePipelineOutput, UNet2DModel
+from diffusers.utils import randn_tensor
+
+from .scheduling_consistency import ConsistencyScheduler
 
 
 class ConsistencyPipeline(DiffusionPipeline):
-    def __init__(self, unet: UNet2DModel) -> None:
+    unet: UNet2DModel
+    scheduler: ConsistencyScheduler
+
+    def __init__(
+        self,
+        unet: UNet2DModel,
+        scheduler: ConsistencyScheduler,
+    ) -> None:
         super().__init__()
-        self.register_modules(unet=unet)
+        self.register_modules(unet=unet, scheduler=scheduler)
 
     @torch.no_grad()
     def __call__(
         self,
         batch_size: int = 1,
-        num_inference_steps: int = 50,
+        num_inference_steps: int = 1,
         generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
         output_type: Optional[str] = "pil",
         return_dict: bool = True,
@@ -39,12 +49,36 @@ class ConsistencyPipeline(DiffusionPipeline):
             True, otherwise a `tuple. When returning a tuple, the first element is a list with the generated images.
         """
 
-        # img_size = self.unet.config.sample_size
-        # shape = (batch_size, 3, img_size, img_size)
+        img_size = self.unet.config.sample_size
+        shape = (batch_size, 3, img_size, img_size)
 
-        # model = self.unet
+        model = self.unet
 
-        # sample = randn_tensor(shape, generator=generator)
+        sample = randn_tensor(shape, generator=generator)
 
-        for t in self.progress_bar(num_inference_steps):
-            pass
+        self.scheduler.set_timesteps(num_inference_steps)
+
+        time: float = self.scheduler.config.time_max
+
+        for step in self.progress_bar(range(num_inference_steps)):
+            if step > 0:
+                time = self.scheduler.search_for_previous_time(time)
+
+            sample = self.scheduler.add_noise_to_input(
+                sample, time, generator=generator
+            )
+            model_output = model(
+                sample, torch.tensor([time], device=sample.device)
+            ).sample
+
+            sample = self.scheduler.step(model_output, time, sample).prev_sample
+
+        sample = (sample / 2 + 0.5).clamp(0, 1)
+        image = sample.cpu().permute(0, 2, 3, 1).numpy()
+        if output_type == "pil":
+            image = self.numpy_to_pil(image)
+
+        if not return_dict:
+            return (image,)
+
+        return ImagePipelineOutput(images=image)
