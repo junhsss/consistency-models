@@ -40,7 +40,7 @@ samples = consistency.sample(16, steps=5, use_ema=True)
 
 `Consistency` is self-contained with the training logic and all necessary schedules.
 
-You can train it with **PyTorch Lightning**'s `Trainer` 🚀
+You can train `Consistency` with **PyTorch Lightning**'s `Trainer` 🚀
 
 ```python
 from pytorch_lightning import Trainer
@@ -48,6 +48,8 @@ from pytorch_lightning import Trainer
 trainer = Trainer(max_epochs=8000, accelerator="auto")
 trainer.fit(consistency, some_dataloader)
 ```
+
+<br />
 
 A complete example can be found in [this **script**](https://github.com/junhsss/consistency-models/blob/main/examples/train.py) or in [this **colab notebook**](https://colab.research.google.com/github/junhsss/consistency-models/blob/main/examples/consistency_models.ipynb).
 
@@ -67,3 +69,7 @@ Checkout [this **Wandb workspace**](https://wandb.ai/junhsss/consistency?workspa
   copyright = {arXiv.org perpetual, non-exclusive license}
 }
 ```
+
+## Todo
+
+- [ ] `diffusers` integration. (`ConsistencyPipeline` + `ConsistencyScheduler`)
