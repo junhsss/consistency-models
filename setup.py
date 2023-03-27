@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-__version__ = "0.2.4"
+__version__ = "0.3.0"
 
 setup(
     name="consistency",
