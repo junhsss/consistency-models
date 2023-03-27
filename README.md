@@ -10,13 +10,27 @@
 
 **Consistency Models** are a new family of generative models that achieve high sample quality without adversarial training. They support _fast one-step generation_ by design, while still allowing for few-step sampling to trade compute for sample quality.
 
+### Note
+
+If you just want to try things out, just do:
+
+```python
+from diffusers import DiffusionPipeline
+
+pipeline = DiffusionPipeline("consistency/cifar10-32-demo", custom_pipeline="consistency/pipeline")
+
+pipeline().images[0]  # Super Fast Generation! 🤯
+```
+
 ## Installation
 
 ```sh
 $ pip install consistency
 ```
 
-## Usage
+## Quickstart
+
+### Basic
 
 Just wrap your favorite _U-Net_ with `Consistency`. 😊
 
@@ -29,7 +43,6 @@ from consistency.loss import PerceptualLoss
 consistency = Consistency(
     model=UNet2DModel(sample_size=224),
     loss_fn=PerceptualLoss(net_type=("vgg", "squeeze"))
-    learning_rate=1e-4,
 )
 
 samples = consistency.sample(16)
@@ -53,7 +66,43 @@ trainer.fit(consistency, some_dataloader)
 
 A complete example can be found in [this **script**](https://github.com/junhsss/consistency-models/blob/main/examples/train.py) or in [this **colab notebook**](https://colab.research.google.com/github/junhsss/consistency-models/blob/main/examples/consistency_models.ipynb).
 
-Checkout [this **Wandb workspace**](https://wandb.ai/junhsss/consistency?workspace=user-junhsss) for some experiment results. (still training... 🏗)
+Checkout [this **Wandb workspace**](https://wandb.ai/junhsss/consistency?workspace=user-junhsss) for some experiment results.
+
+### Push to HF Hub
+
+Just provide your `model_id` and `token`!
+
+```python
+consistency = Consistency(
+    model=UNet2DModel(sample_size=224),
+    loss_fn=PerceptualLoss(net_type=("vgg", "squeeze"))
+    model_id="your_model_id",
+    token="your_token"  # Not needed if logged in via huggingface-cli
+    push_every_n_steps=10000,
+)
+```
+
+You can safely uninstall `consistency` afterwards. Good luck! 🤞:
+
+```python
+from diffusers import DiffusionPipeline
+
+pipeline = DiffusionPipeline("your_model_id", custom_pipeline="consistency/pipeline")
+
+pipeline().images[0]
+```
+
+## Available Models
+
+| model_id                    | sample_size |
+| --------------------------- | ----------- |
+| consistency/cifar10-32-demo | 32          |
+
+If you've trained some checkpoints. **Share with us! 🤗**
+
+## Documentation
+
+In progress... 🛠
 
 ## Reference
 
