@@ -60,7 +60,6 @@ class Consistency(LightningModule):
         sample_steps: int = 1,
         use_ema: bool = False,
         sample_seed: int = 0,
-        push_to_hub: bool = False,
         model_id: Optional[str] = None,
         token: Optional[str] = None,
         push_every_n_steps: Optional[int] = 100,
@@ -118,8 +117,9 @@ class Consistency(LightningModule):
         self.use_ema = use_ema
         self.sample_seed = sample_seed
 
-        if push_to_hub:
-            self.push_to_hub = push_to_hub
+        self.push_to_hub = True if model_id else False
+
+        if self.push_to_hub:
             self.token = token
             self.model_id = model_id
             self.push_every_n_steps = push_every_n_steps
