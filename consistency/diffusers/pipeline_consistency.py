@@ -54,19 +54,17 @@ class ConsistencyPipeline(DiffusionPipeline):
 
         model = self.unet
 
-        sample = randn_tensor(shape, generator=generator)
-
-        self.scheduler.set_timesteps(num_inference_steps)
-
         time: float = self.scheduler.config.time_max
+
+        sample = randn_tensor(shape, generator=generator) * time
 
         for step in self.progress_bar(range(num_inference_steps)):
             if step > 0:
-                time = self.scheduler.search_for_previous_time(time)
+                time = self.scheduler.search_previous_time(time)
+                sample = self.scheduler.add_noise_to_input(
+                    sample, time, generator=generator
+                )
 
-            sample = self.scheduler.add_noise_to_input(
-                sample, time, generator=generator
-            )
             model_output = model(
                 sample, torch.tensor([time], device=sample.device)
             ).sample

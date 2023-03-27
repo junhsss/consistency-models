@@ -3,7 +3,7 @@ import torch
 from diffusers import UNet2DModel
 
 from consistency import Consistency
-from consistency.compat import ConsistencyPipeline, ConsistencyScheduler
+from consistency.diffusers import ConsistencyPipeline, ConsistencyScheduler
 
 
 def test_diffusers_pipeline():
