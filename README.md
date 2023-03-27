@@ -69,11 +69,9 @@ trainer = Trainer(max_epochs=8000, accelerator="auto")
 trainer.fit(consistency, some_dataloader)
 ```
 
-<br />
-
 ### Push to HF Hub
 
-Just provide your `model_id` and `token`!
+Provide your `model_id` and `token` to `Consistency`.
 
 ```python
 consistency = Consistency(
@@ -98,8 +96,6 @@ pipeline = DiffusionPipeline.from_pretrained(
 pipeline().images[0]
 ```
 
-<br />
-
 A complete example can be found in [this **script**](https://github.com/junhsss/consistency-models/blob/main/examples/train.py) or in [this **colab notebook**](https://colab.research.google.com/github/junhsss/consistency-models/blob/main/examples/consistency_models.ipynb).
 
 Checkout [this **Wandb workspace**](https://wandb.ai/junhsss/consistency?workspace=user-junhsss) for some experiment results.
@@ -108,11 +104,11 @@ Checkout [this **Wandb workspace**](https://wandb.ai/junhsss/consistency?workspa
 
 ## Available Models
 
-| model_id                    | sample_size |
-| --------------------------- | ----------- |
-| consistency/cifar10-32-demo | 32          |
+| model_id                                                                                                                  | dataset                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| <a href="https://huggingface.co/consistency/cifar10-32-demo" target="_blank"><code>consistency/cifar10-32-demo</code></a> | <a href="https://huggingface.co/datasets/cifar10" target="_blank"><code>cifar10</code></a> |
 
-If you've trained some checkpoints. **Share with us! 🤗**
+If you've trained some checkpoints using `consistency`, **share with us! 🤗**
 
 <br />
 
