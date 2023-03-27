@@ -1,5 +1,6 @@
 import copy
 import math
+import os
 from contextlib import suppress
 from pathlib import Path
 from typing import List, Optional, Type, Union
@@ -15,6 +16,8 @@ from torch import nn, optim
 from torchmetrics import MeanMetric
 from torchvision.transforms.functional import to_pil_image
 from torchvision.utils import make_grid, save_image
+
+from consistency.diffusers import ConsistencyPipeline, ConsistencyScheduler
 
 with suppress(ImportError):
     import wandb
@@ -57,6 +60,10 @@ class Consistency(LightningModule):
         sample_steps: int = 1,
         sample_ema: bool = False,
         sample_seed: int = 0,
+        push_to_hub: bool = False,
+        model_id: Optional[str] = None,
+        token: Optional[str] = None,
+        push_every_n_steps: Optional[int] = 100,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -110,6 +117,38 @@ class Consistency(LightningModule):
         self.sample_steps = sample_steps
         self.sample_ema = sample_ema
         self.sample_seed = sample_seed
+
+        if push_to_hub:
+            self.push_to_hub = push_to_hub
+            self.token = token
+            self.model_id = model_id
+            self.push_every_n_steps = push_every_n_steps
+            self.repo = None
+
+    @rank_zero_only
+    def setup(self, *args, **kwargs) -> None:
+        if self.push_to_hub:
+            import huggingface_hub
+
+            if self.token is None:
+                self.token = huggingface_hub.HfFolder.get_token()
+
+            username = huggingface_hub.whoami(self.token)["name"]
+            full_repo_name = f"{username}/{self.model_id}"
+
+            huggingface_hub.create_repo(full_repo_name, exist_ok=True, token=self.token)
+
+            self.repo = huggingface_hub.Repository(
+                local_dir=self.model_id,
+                clone_from=full_repo_name,
+                token=self.token,
+            )
+
+            with open(os.path.join(self.model_id, ".gitignore"), "w+") as gitignore:
+                if "step_*" not in gitignore:
+                    gitignore.write("step_*\n")
+                if "epoch_*" not in gitignore:
+                    gitignore.write("epoch_*\n")
 
     def forward(
         self,
@@ -199,6 +238,31 @@ class Consistency(LightningModule):
     def configure_optimizers(self):
         return self.optimizer_type(self.parameters(), lr=self.learning_rate)
 
+    @rank_zero_only
+    def on_train_batch_end(self, *args, **kwargs):
+        if (
+            self.push_to_hub
+            and self.trainer.global_step % self.push_every_n_steps == 0
+            and self.trainer.global_step > 0
+        ):
+            pipeline = ConsistencyPipeline(
+                unet=self.model_ema.unet if self.sample_ema else self.model.unet,
+                scheduler=ConsistencyScheduler(
+                    time_min=self.time_min,
+                    time_max=self.time_max,
+                    data_std=self.data_std,
+                ),
+            )
+
+            pipeline.save_pretrained(self.model_id)
+
+            self.repo.push_to_hub(
+                commit_message=f"Epoch {self.current_epoch}",
+                blocking=False,
+            )
+
+            del pipeline
+
     def optimizer_step(self, *args, **kwargs) -> None:
         super().optimizer_step(*args, **kwargs)
         self.ema_update()
@@ -256,7 +320,7 @@ class Consistency(LightningModule):
             f"{0:05}",
             num_samples=self.num_samples,
             steps=self.sample_steps,
-            seed=self.sample_seed,
+            generator=torch.Generator(device=self.device).manual_seed(self.sample_seed),
             use_ema=self.sample_ema,
         )
 
@@ -271,7 +335,9 @@ class Consistency(LightningModule):
                 f"{(self.current_epoch+1):05}",
                 num_samples=self.num_samples,
                 steps=self.sample_steps,
-                seed=self.sample_seed,
+                generator=torch.Generator(device=self.device).manual_seed(
+                    self.sample_seed
+                ),
                 use_ema=self.sample_ema,
             )
 
@@ -323,13 +389,13 @@ class Consistency(LightningModule):
         num_samples: int = 16,
         steps: int = 1,
         use_ema: bool = False,
-        seed: int = 0,
+        generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
     ):
         samples = self.sample(
             num_samples=num_samples,
             steps=steps,
+            generator=generator,
             use_ema=use_ema,
-            seed=seed,
         )
         samples.mul_(0.5).add_(0.5)
         grid = make_grid(
