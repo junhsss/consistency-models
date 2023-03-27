@@ -75,7 +75,8 @@ class ConsistencyScheduler(SchedulerMixin, ConfigMixin):
         return sample_hat
 
     def search_previous_time(self, time):
-        return (time + self.time_min) / 2
+        time = (time + self.config.time_min) / 2
+        return time
 
     def step(
         self,
@@ -94,6 +95,8 @@ class ConsistencyScheduler(SchedulerMixin, ConfigMixin):
         )
 
         output = sample * skip_coef + model_output * out_coef
+
+        self.time = time
 
         return ConsistencySchedulerOutput(prev_sample=output.clamp(-1.0, 1.0))
 
