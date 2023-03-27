@@ -17,7 +17,7 @@ from torchmetrics import MeanMetric
 from torchvision.transforms.functional import to_pil_image
 from torchvision.utils import make_grid, save_image
 
-from consistency.diffusers import ConsistencyPipeline, ConsistencyScheduler
+from consistency.pipeline import ConsistencyPipeline
 
 with suppress(ImportError):
     import wandb
@@ -58,7 +58,7 @@ class Consistency(LightningModule):
         save_samples_every_n_epoch: int = 10,
         num_samples: int = 16,
         sample_steps: int = 1,
-        sample_ema: bool = False,
+        use_ema: bool = False,
         sample_seed: int = 0,
         push_to_hub: bool = False,
         model_id: Optional[str] = None,
@@ -115,7 +115,7 @@ class Consistency(LightningModule):
         self.save_samples_every_n_epoch = save_samples_every_n_epoch
         self.num_samples = num_samples
         self.sample_steps = sample_steps
-        self.sample_ema = sample_ema
+        self.use_ema = use_ema
         self.sample_seed = sample_seed
 
         if push_to_hub:
@@ -246,18 +246,13 @@ class Consistency(LightningModule):
             and self.trainer.global_step > 0
         ):
             pipeline = ConsistencyPipeline(
-                unet=self.model_ema.unet if self.sample_ema else self.model.unet,
-                scheduler=ConsistencyScheduler(
-                    time_min=self.time_min,
-                    time_max=self.time_max,
-                    data_std=self.data_std,
-                ),
+                unet=self.model_ema.unet if self.use_ema else self.model.unet,
             )
 
             pipeline.save_pretrained(self.model_id)
 
             self.repo.push_to_hub(
-                commit_message=f"Epoch {self.current_epoch}",
+                commit_message=f"Step {self.global_step}",
                 blocking=False,
             )
 
@@ -321,7 +316,7 @@ class Consistency(LightningModule):
             num_samples=self.num_samples,
             steps=self.sample_steps,
             generator=torch.Generator(device=self.device).manual_seed(self.sample_seed),
-            use_ema=self.sample_ema,
+            use_ema=self.use_ema,
         )
 
     @rank_zero_only
@@ -338,7 +333,7 @@ class Consistency(LightningModule):
                 generator=torch.Generator(device=self.device).manual_seed(
                     self.sample_seed
                 ),
-                use_ema=self.sample_ema,
+                use_ema=self.use_ema,
             )
 
     @torch.no_grad()
