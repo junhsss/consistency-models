@@ -42,7 +42,7 @@ class Consistency(LightningModule):
         save_samples_every_n_epoch: int = 10,
         num_samples: int = 16,
         sample_steps: int = 1,
-        use_ema: bool = False,
+        use_ema: bool = True,
         sample_seed: int = 0,
         model_id: Optional[str] = None,
         token: Optional[str] = None,
