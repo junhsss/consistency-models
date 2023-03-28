@@ -128,8 +128,8 @@ def parse_args():
     parser.add_argument("--resume-ckpt-path", type=str)
     parser.add_argument("--resume-wandb-id", type=str)
 
-    parser.add_argument("--push-to-hub", type="store_true")
-    parser.add_argument("--model-id", type=int)
+    parser.add_argument("--push-to-hub", action="store_true")
+    parser.add_argument("--model-id", type=str)
     parser.add_argument("--token", type=str)
     parser.add_argument("--push-every-n-steps", type=int)
 
@@ -184,7 +184,7 @@ def main(args):
         unet_config = UNet2DModel.load_config(args.unet_config_path)
         unet = UNet2DModel.from_config(unet_config)
     else:
-        # Simplified NCSN++ Architecture
+        # Simplified NCSN++ Architecture tailored for CIFAR-10
         # See https://huggingface.co/google/ncsnpp-ffhq-1024/blob/main/config.json
         unet = UNet2DModel(
             sample_size=args.resolution,
@@ -269,7 +269,7 @@ def main(args):
                 )
             ],
             max_epochs=args.max_epochs,
-            precision=32,
+            precision=16,
             log_every_n_steps=args.log_every_n_steps,
             gradient_clip_algorithm="norm",
             gradient_clip_val=1.0,

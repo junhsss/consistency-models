@@ -96,7 +96,7 @@ pipeline = DiffusionPipeline.from_pretrained(
 pipeline().images[0]
 ```
 
-A complete example can be found in [this **script**](https://github.com/junhsss/consistency-models/blob/main/examples/train.py) or in [this **colab notebook**](https://colab.research.google.com/github/junhsss/consistency-models/blob/main/examples/consistency_models.ipynb).
+A complete example can be found in [**here**](https://github.com/junhsss/consistency-models/blob/main/examples/unconditional_image_generation) or in [this **colab notebook**](https://colab.research.google.com/github/junhsss/consistency-models/blob/main/examples/consistency_models.ipynb).
 
 Checkout [this **Wandb workspace**](https://wandb.ai/junhsss/consistency?workspace=user-junhsss) for some experiment results.
 

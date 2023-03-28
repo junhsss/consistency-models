@@ -1,0 +1,4 @@
+huggingface-hub
+datasets
+wandb
+consistency
