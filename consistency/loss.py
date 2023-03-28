@@ -30,7 +30,7 @@ class PerceptualLoss(nn.Module):
 
         self.lpips_losses = nn.ModuleList()
 
-        if isinstance(net_type, str) and net_type in available_net_types:
+        if isinstance(net_type, str):
             _append_net_type(net_type)
 
         elif isinstance(net_type, Sequence):
