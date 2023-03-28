@@ -89,7 +89,7 @@ You can safely drop `consistency` afterwards. Good luck! 🤞
 from diffusers import DiffusionPipeline
 
 pipeline = DiffusionPipeline.from_pretrained(
-    "your_model_id",
+    "your_name/your_model_id",
     custom_pipeline="consistency/pipeline",
 )
 
