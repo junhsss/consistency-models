@@ -33,6 +33,8 @@ pipeline = DiffusionPipeline.from_pretrained(
 pipeline().images[0]  # Super Fast Generation! 🤯
 ```
 
+[**Try it yourself!**](https://colab.research.google.com/github/junhsss/consistency-models/blob/main/examples/sample.ipynb)
+
 <br />
 
 ## Quickstart
